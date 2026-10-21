@@ -11,8 +11,9 @@ describe("buildDataSchema", () => {
   });
 
   it("requires required fields", () => {
-    const { partnerOne: _omit, ...rest } = template.sample;
-    expect(schema.safeParse(rest).success).toBe(false);
+    const missing: Record<string, unknown> = { ...template.sample };
+    delete missing.partnerOne;
+    expect(schema.safeParse(missing).success).toBe(false);
   });
 
   it("rejects unknown keys", () => {
