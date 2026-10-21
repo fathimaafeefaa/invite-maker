@@ -79,5 +79,9 @@ Target an Awwwards-level feel, not a generic form-builder look:
 - Supabase auth cookie handling: use `@supabase/ssr`; for server-side auth checks verify the user with the auth server (`getUser`), not an unverified session read.
 - Event time is stored as local wall-clock `YYYY-MM-DDTHH:mm` in `data.eventAt` plus `invitations.timezone`; the server derives the `event_at` timestamptz with `localToInstant` (`src/lib/datetime.ts`).
 
-## Testing reality
-No Docker/local Supabase on the dev machine yet. Unit tests (Vitest) cover the schema builder and date maths. RLS and function behaviour will be checked manually / by script against the hosted dev Supabase project until Docker is installed.
+## Testing
+- Unit (Vitest): `npm test` covers the schema builder and date maths.
+- Database rules: `supabase/tests/rls.sql` checks 34 access rules (owners, other users, anonymous visitors, the server role, expiry, caps, storage) inside one transaction that always aborts, so nothing is persisted. Run it against the linked project:
+  `npx supabase db query --linked -f supabase/tests/rls.sql`
+  Results are returned as JSON inside the final error message. No Docker needed.
+- Status: migration `20261021000000_init` is applied to the hosted dev project and all 34 checks pass.
