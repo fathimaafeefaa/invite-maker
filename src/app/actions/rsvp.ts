@@ -58,7 +58,8 @@ export async function submitRsvp(slug: string, _prev: RsvpState, formData: FormD
 
   const admin = createAdminClient();
   const forwarded = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const ipKey = `rsvp:ip:${createHash("sha256").update(forwarded).digest("hex").slice(0, 32)}`;
+  // Scoped per invitation so guests sharing an IP (venue Wi-Fi, mobile carriers) at different events do not share a limit.
+  const ipKey = `rsvp:ip:${createHash("sha256").update(forwarded).digest("hex").slice(0, 32)}:${slug}`;
 
   const [byIp, bySlug] = await Promise.all([
     admin.rpc("check_rate_limit", { p_key: ipKey, p_max: 15, p_window: "1 hour" }),

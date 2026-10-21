@@ -81,13 +81,13 @@ Target an Awwwards-level feel, not a generic form-builder look:
 
 ## Testing
 - Unit (Vitest): `npm test` covers the schema builder and date maths.
-- Database rules: `supabase/tests/rls.sql` checks 34 access rules (owners, other users, anonymous visitors, the server role, expiry, caps, storage) inside one transaction that always aborts, so nothing is persisted. Run it against the linked project:
+- Database rules: `supabase/tests/rls.sql` checks 42 access rules (owners, other users, anonymous visitors, the server role, expiry, caps, storage, rate limiter) inside one transaction that always aborts, so nothing is persisted. Run it against the linked project:
   `npx supabase db query --linked -f supabase/tests/rls.sql`
   Results are returned as JSON inside the final error message. No Docker needed.
-- Status: migration `20261021000000_init` is applied to the hosted dev project and all 34 checks pass.
+- Status: all three migrations in `supabase/migrations/` are applied to the hosted dev project and all 42 checks pass.
 
 ## Progress
-- Done: schema + RLS (34 DB checks), template system, sign-in (magic link), dashboard, editor (autosave, photos, live preview, publish), guest page, RSVP form (rate-limited, honeypot), host replies page + CSV export, WhatsApp link preview (OG image + metadata).
+- Done: schema + RLS (42 DB checks), template system, sign-in (magic link), dashboard, editor (autosave, photos, live preview, publish), guest page, RSVP form (rate-limited, honeypot), host replies page + CSV export, WhatsApp link preview (OG image + metadata).
 - Next: design polish (Awwwards-level pass), more templates/occasions, i18n + RTL, time zone picker, expiry cleanup job, own SMTP for auth emails.
 
 ## Lessons from testing
@@ -96,4 +96,5 @@ Target an Awwwards-level feel, not a generic form-builder look:
 - Drafts save every valid field and flag only invalid ones; live invitations stay all-or-nothing.
 - Photos are uploaded as JPEG (the OG image renderer does not reliably handle WebP).
 - The RSVP button stays disabled until hydration; a pre-hydration native submit stores the reply but shows no confirmation.
+- Production: set `NEXT_PUBLIC_SITE_URL` to the real https URL, or share links and link-preview images will point at localhost.
 - Known: `next start` logs a `Date.now()` prerender warning for `/editor/[id]` at startup. The editor works; cause not yet found.

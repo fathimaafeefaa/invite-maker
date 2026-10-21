@@ -213,6 +213,55 @@ do $$ declare c bigint; begin
   insert into results values ('other user cannot read A''s RSVPs', c = 0, 'count=' || c);
 exception when others then insert into results values ('other user cannot read A''s RSVPs', false, sqlerrm); end $$;
 
+-- ---- rate limiter and storage reads (migrations 2 and 3)
+reset role;
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+do $$ begin
+  perform public.check_rate_limit('rsvp:slug:test-live', 1, interval '1 minute');
+  insert into results values ('anon cannot call check_rate_limit', false, 'statement unexpectedly succeeded');
+exception when others then insert into results values ('anon cannot call check_rate_limit', true, sqlerrm); end $$;
+do $$ begin
+  perform count(*) from public.rate_limits;
+  insert into results values ('anon cannot read rate_limits', false, 'statement unexpectedly succeeded');
+exception when others then insert into results values ('anon cannot read rate_limits', true, sqlerrm); end $$;
+do $$ declare c bigint; begin
+  select count(*) into c from storage.objects;
+  insert into results values ('anon sees no stored photos', c = 0, 'count=' || c);
+exception when others then insert into results values ('anon sees no stored photos', false, sqlerrm); end $$;
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-0000-0000-0000000000a1"}', true);
+do $$ begin
+  perform public.check_rate_limit('rsvp:slug:test-live', 1, interval '1 minute');
+  insert into results values ('authenticated users cannot call check_rate_limit', false, 'statement unexpectedly succeeded');
+exception when others then insert into results values ('authenticated users cannot call check_rate_limit', true, sqlerrm); end $$;
+do $$ begin
+  perform count(*) from public.rate_limits;
+  insert into results values ('authenticated users cannot read rate_limits', false, 'statement unexpectedly succeeded');
+exception when others then insert into results values ('authenticated users cannot read rate_limits', true, sqlerrm); end $$;
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-0000-0000-0000000000b2"}', true);
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('invitation-photos', '00000000-0000-0000-0000-0000000000b2/inv2/photo.jpg');
+  insert into results values ('second user can upload to their own folder', true, null);
+exception when others then insert into results values ('second user can upload to their own folder', false, sqlerrm); end $$;
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-0000-0000-0000000000a1"}', true);
+do $$ declare c bigint; begin
+  select count(*) into c from storage.objects where bucket_id = 'invitation-photos';
+  insert into results values ('owner lists only their own photos, not another user''s', c = 1, 'count=' || c);
+exception when others then insert into results values ('owner lists only their own photos, not another user''s', false, sqlerrm); end $$;
+reset role;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+do $$ begin
+  perform public.check_rate_limit('rls-test-key', 5, interval '1 minute');
+  insert into results values ('server can use the rate limiter', true, null);
+exception when others then insert into results values ('server can use the rate limiter', false, sqlerrm); end $$;
+
 reset role;
 do $$ begin
   raise exception 'RESULTS:%', (select json_agg(json_build_object('name', name, 'ok', ok, 'detail', left(detail, 90))) from results);
