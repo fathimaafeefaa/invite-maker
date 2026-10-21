@@ -36,7 +36,7 @@ export async function createInvitation(templateId: string) {
 }
 
 export type SaveResult =
-  | { ok: true; slug: string; status: "draft" | "published" }
+  | { ok: true; slug: string; status: "draft" | "published"; fieldErrors?: Record<string, string> }
   | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 const idSchema = z.string().uuid();
@@ -55,7 +55,28 @@ export async function saveInvitation(id: string, raw: Record<string, unknown>, p
   if (!template) return { ok: false, message: "This template is no longer available." };
 
   const wantPublished = publish || current.status === "published";
-  const parsed = buildDataSchema(template, { draft: !wantPublished }).safeParse(cleanData(raw));
+  const schema = buildDataSchema(template, { draft: !wantPublished });
+  const cleaned = cleanData(raw);
+  let parsed = schema.safeParse(cleaned);
+
+  // Drafts: one bad field must not block saving the rest. Keep each valid
+  // field, keep the previously saved value for an invalid one, and flag it.
+  let draftErrors: Record<string, string> | undefined;
+  if (!parsed.success && !wantPublished) {
+    const shape = schema.shape as Record<string, z.ZodType>;
+    const merged: Record<string, unknown> = {};
+    draftErrors = {};
+    for (const [key, value] of Object.entries(cleaned)) {
+      if (!shape[key]) continue; // unknown keys are dropped
+      if (shape[key].safeParse(value).success) merged[key] = value;
+      else {
+        draftErrors[key] = "Please check this value";
+        if (current.data[key] !== undefined) merged[key] = current.data[key];
+      }
+    }
+    parsed = schema.safeParse(merged);
+  }
+
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -85,7 +106,12 @@ export async function saveInvitation(id: string, raw: Record<string, unknown>, p
   const stale = photoPaths(template, current.data).filter((p) => !keep.has(p));
   if (stale.length) await supabase.storage.from(BUCKET).remove(stale);
 
-  return { ok: true, slug, status: wantPublished ? "published" : "draft" };
+  return {
+    ok: true,
+    slug,
+    status: wantPublished ? "published" : "draft",
+    ...(draftErrors && Object.keys(draftErrors).length ? { fieldErrors: draftErrors } : {}),
+  };
 }
 
 export async function unpublishInvitation(id: string) {

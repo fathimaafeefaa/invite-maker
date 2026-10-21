@@ -85,3 +85,15 @@ Target an Awwwards-level feel, not a generic form-builder look:
   `npx supabase db query --linked -f supabase/tests/rls.sql`
   Results are returned as JSON inside the final error message. No Docker needed.
 - Status: migration `20261021000000_init` is applied to the hosted dev project and all 34 checks pass.
+
+## Progress
+- Done: schema + RLS (34 DB checks), template system, sign-in (magic link), dashboard, editor (autosave, photos, live preview, publish), guest page, RSVP form (rate-limited, honeypot), host replies page + CSV export, WhatsApp link preview (OG image + metadata).
+- Next: design polish (Awwwards-level pass), more templates/occasions, i18n + RTL, time zone picker, expiry cleanup job, own SMTP for auth emails.
+
+## Lessons from testing
+- Template titles come from `TemplateDef.titleFields`; never infer them from field order.
+- Templates use container queries (`@2xl:`), not viewport breakpoints, so the editor's phone frame matches real phones.
+- Drafts save every valid field and flag only invalid ones; live invitations stay all-or-nothing.
+- Photos are uploaded as JPEG (the OG image renderer does not reliably handle WebP).
+- The RSVP button stays disabled until hydration; a pre-hydration native submit stores the reply but shows no confirmation.
+- Known: `next start` logs a `Date.now()` prerender warning for `/editor/[id]` at startup. The editor works; cause not yet found.

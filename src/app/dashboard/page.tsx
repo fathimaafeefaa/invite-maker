@@ -86,6 +86,11 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/dashboard">, "search
                         View
                       </Link>
                     )}
+                    {inv.status === "published" && (
+                      <Link href={`/dashboard/${inv.id}`} className="text-xs uppercase tracking-[0.2em] opacity-70 hover:opacity-100">
+                        Replies
+                      </Link>
+                    )}
                     <Link href={`/editor/${inv.id}`} className="text-xs uppercase tracking-[0.2em] text-[#8a6d2f]">
                       Edit
                     </Link>

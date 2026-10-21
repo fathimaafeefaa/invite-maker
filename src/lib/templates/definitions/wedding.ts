@@ -5,6 +5,7 @@ export const wedding: TemplateDef = {
   occasion: "wedding",
   name: "Classic Wedding",
   description: "An elegant serif invitation with a countdown and venue directions.",
+  titleFields: ["partnerOne", "partnerTwo"],
   fields: [
     { key: "partnerOne", type: "text", label: "First name", group: "The couple", required: true, max: 60, placeholder: "Ruqiya" },
     { key: "partnerOneParents", type: "text", label: "Their parents", group: "The couple", max: 120, placeholder: "Daughter of Mr. A and Mrs. B" },

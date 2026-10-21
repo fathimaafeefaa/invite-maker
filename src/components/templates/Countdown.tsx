@@ -25,10 +25,10 @@ export function Countdown({ targetIso }: { targetIso: string }) {
   const values = now === null ? null : splitDuration(Math.max(0, new Date(targetIso).getTime() - now));
 
   return (
-    <div className="grid grid-cols-4 gap-3 sm:gap-6" role="timer" aria-label="Time until the event">
+    <div className="grid grid-cols-4 gap-3 @2xl:gap-6" role="timer" aria-label="Time until the event">
       {UNITS.map(([label], i) => (
         <div key={label} className="text-center">
-          <div className="font-display text-4xl tabular-nums sm:text-6xl">
+          <div className="font-display text-4xl tabular-nums @2xl:text-6xl">
             {values ? String(values[i]).padStart(2, "0") : "--"}
           </div>
           <div className="mt-1 text-[0.65rem] uppercase tracking-[0.25em] opacity-60">{label}</div>

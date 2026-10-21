@@ -24,6 +24,8 @@ export interface TemplateDef {
   name: string;
   description: string;
   fields: FieldDef[];
+  /** Keys of the fields that name the event (e.g. both partners), in order. Used for titles, link previews and slugs. */
+  titleFields: string[];
   /** Sample values used for template previews and dev fixtures. */
   sample: Record<string, string | string[]>;
 }

@@ -7,6 +7,7 @@ import { TEMPLATE_COMPONENTS } from "@/components/templates";
 import { localToInstant } from "@/lib/datetime";
 import { getTemplate } from "@/lib/templates/registry";
 import type { FieldDef } from "@/lib/templates/types";
+import { RsvpPreview } from "@/components/RsvpForm";
 import { FieldInput } from "./FieldInput";
 
 type Values = Record<string, string | string[] | undefined>;
@@ -63,8 +64,8 @@ export function Editor({ userId, invitation }: Props) {
       setSaveState("saving");
       const res = await saveInvitation(invitation.id, valuesRef.current, publish);
       if (res.ok) {
-        setErrors({});
-        setMessage("");
+        setErrors(res.fieldErrors ?? {});
+        setMessage(res.fieldErrors ? "Saved, except the highlighted field(s), which need attention." : "");
         setStatus(res.status);
         setSlug(res.slug);
         // An edit made while saving flips this back to "dirty" and wins.
@@ -232,7 +233,7 @@ export function Editor({ userId, invitation }: Props) {
               style={{ "--frame-h": "640px" } as React.CSSProperties}
             >
               <div className="h-[640px] overflow-y-auto overscroll-contain">
-                <Preview data={previewData} locale={invitation.locale} eventIso={eventIso} />
+                <Preview data={previewData} locale={invitation.locale} eventIso={eventIso} rsvp={<RsvpPreview />} />
               </div>
             </div>
             <p className="mt-3 text-center text-xs opacity-50">Sample text shows where blank fields will appear.</p>

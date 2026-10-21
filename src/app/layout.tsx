@@ -14,6 +14,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "invite-maker",
   description: "Free digital invitations. Pick a template, add your details, share one link.",
 };

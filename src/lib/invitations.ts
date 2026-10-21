@@ -24,13 +24,9 @@ function str(v: InvitationData[string]): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/** The first two text fields with a value (e.g. the couple's names). */
+/** Values of the template's title fields (e.g. both partners' names) that are filled in. */
 export function titleParts(template: TemplateDef, data: InvitationData): string[] {
-  return template.fields
-    .filter((f) => f.type === "text")
-    .map((f) => str(data[f.key]))
-    .filter(Boolean)
-    .slice(0, 2);
+  return template.titleFields.map((key) => str(data[key])).filter(Boolean);
 }
 
 export function invitationTitle(template: TemplateDef | undefined, data: InvitationData): string {

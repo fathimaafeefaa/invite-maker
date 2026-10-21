@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { RsvpForm } from "@/components/RsvpForm";
 import { TEMPLATE_COMPONENTS } from "@/components/templates";
+import { formatLocal } from "@/lib/datetime";
+import { titleParts } from "@/lib/invitations";
+import { getPublished } from "@/lib/published";
 import { getTemplate } from "@/lib/templates/registry";
-import type { InvitationData } from "@/lib/templates/types";
-import { createPublicClient } from "@/lib/supabase/public";
 
-// Invitations are private-ish links: keep them out of search engines.
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: PageProps<"/invite/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const row = await getPublished(slug);
+  const template = row && getTemplate(row.template_id);
 
-const SLUG = /^[a-z0-9-]{4,40}$/;
+  // Invitations are link-only: keep them out of search engines.
+  const base: Metadata = { robots: { index: false, follow: false } };
+  if (!row || row.expired || !template) return { ...base, title: "Invitation" };
+
+  const names = titleParts(template, row.data).join(" & ");
+  const when = typeof row.data.eventAt === "string" ? formatLocal(row.data.eventAt, row.locale) : null;
+  const venue = typeof row.data.venueName === "string" ? row.data.venueName : "";
+  const title = names ? `You're invited: ${names}` : "You're invited";
+  const description = [when && `${when.date}, ${when.time}`, venue].filter(Boolean).join(" · ") || "Open your invitation";
+
+  return { ...base, title, description, openGraph: { title, description, type: "website" } };
+}
 
 export default function InvitePage({ params }: PageProps<"/invite/[slug]">) {
   return (
@@ -19,21 +34,9 @@ export default function InvitePage({ params }: PageProps<"/invite/[slug]">) {
   );
 }
 
-interface PublishedRow {
-  template_id: string;
-  locale: string;
-  event_at: string | null;
-  expired: boolean;
-  data: InvitationData;
-}
-
 async function Invite({ params }: Pick<PageProps<"/invite/[slug]">, "params">) {
   const { slug } = await params;
-  if (!SLUG.test(slug)) notFound();
-
-  // Anonymous access goes through get_published_invitation(); the tables are closed to anon.
-  const { data } = await createPublicClient().rpc("get_published_invitation", { p_slug: slug });
-  const row = (data as PublishedRow[] | null)?.[0];
+  const row = await getPublished(slug);
   if (!row) notFound();
 
   if (row.expired) {
@@ -50,5 +53,5 @@ async function Invite({ params }: Pick<PageProps<"/invite/[slug]">, "params">) {
   const Component = TEMPLATE_COMPONENTS[row.template_id];
   if (!template || !Component || !row.event_at) notFound();
 
-  return <Component data={row.data} locale={row.locale} eventIso={row.event_at} />;
+  return <Component data={row.data} locale={row.locale} eventIso={row.event_at} rsvp={<RsvpForm slug={slug} />} />;
 }
