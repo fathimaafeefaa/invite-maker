@@ -17,11 +17,10 @@ invitation.data (jsonb): { values for each field key }
 A wedding, birthday or housewarming differs only in field labels ("Bride/Groom" vs "Birthday person") and visual theme.
 
 ## Data model (Supabase Postgres)
-- `profiles` (id = auth user, display_name)
 - `invitations` (id, owner_id, template_id, slug unique, locale, data jsonb, status draft|published, event_at, expires_at, created_at)
 - `rsvps` (id, invitation_id, name, email?, phone?, attending bool, guest_count, message, created_at)
 - Storage bucket `invitation-photos` (path = `{owner_id}/{invitation_id}/…`)
-- RLS: owners CRUD their invitations/photos; anyone can read published + non-expired; anyone can INSERT an RSVP (rate-limited); only owner can read RSVPs.
+- Access model (see `supabase/migrations/20261021000000_init.sql`): the `anon` role has **no** direct table access. Owners CRUD their own invitations and photos via RLS. Guests load a published invitation through the `get_published_invitation(slug)` function, which returns empty data once expired. RSVPs go through a server action that validates, rate-limits and calls `submit_rsvp(...)`, executable only by `service_role`. `expires_at`, the 20-invitations-per-user cap and size/length limits are enforced in the database, not the UI.
 
 ## Key flows
 1. **Create:** occasion → template gallery (phone-frame live preview) → form editor with live preview → Publish → copy/share link.
@@ -73,3 +72,12 @@ Target an Awwwards-level feel, not a generic form-builder look:
 - Motion: smooth scroll (Lenis), scroll-triggered reveals and a cinematic opening animation per invitation (GSAP or Motion), respecting `prefers-reduced-motion`.
 - Each template has its own art direction (type pairing, palette, ornament) built from CSS/SVG; the marketing site and editor share one polished design system.
 - Performance is part of the design: fast LCP on mid-range phones over mobile data (guests open links from WhatsApp).
+
+## Implementation notes (Next.js 16)
+- `proxy.ts` replaces `middleware.ts`; `params` and `cookies()` are async.
+- **Cache Components is on.** Await `params` / `cookies()` / `headers()` inside `<Suspense>`, never at the top of a page; metadata that reads runtime data needs `use cache` or a dynamic marker. The guest page `/invite/[slug]` and its OG image must follow this.
+- Supabase auth cookie handling: use `@supabase/ssr`; for server-side auth checks verify the user with the auth server (`getUser`), not an unverified session read.
+- Event time is stored as local wall-clock `YYYY-MM-DDTHH:mm` in `data.eventAt` plus `invitations.timezone`; the server derives the `event_at` timestamptz with `localToInstant` (`src/lib/datetime.ts`).
+
+## Testing reality
+No Docker/local Supabase on the dev machine yet. Unit tests (Vitest) cover the schema builder and date maths. RLS and function behaviour will be checked manually / by script against the hosted dev Supabase project until Docker is installed.
