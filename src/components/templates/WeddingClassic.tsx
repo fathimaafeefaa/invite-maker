@@ -20,9 +20,9 @@ export function WeddingClassic({ data, locale, eventIso }: TemplateProps) {
   const mapUrl = str(data.mapUrl);
 
   return (
-    <main className="wedding-classic min-h-dvh bg-[#faf5ea] text-[#2c2a24]">
+    <main className="wedding-classic min-h-[var(--frame-h,100dvh)] bg-[#faf5ea] text-[#2c2a24]">
       <section
-        className="relative flex min-h-dvh flex-col items-center justify-center px-6 py-24 text-center"
+        className="relative flex min-h-[var(--frame-h,100dvh)] flex-col items-center justify-center px-6 py-24 text-center"
         style={cover ? { backgroundImage: `linear-gradient(rgba(250,245,234,.82), rgba(250,245,234,.95)), url(${photoUrl(cover)})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
       >
         <p className="reveal text-xs uppercase tracking-[0.5em] text-[#8a6d2f]">With love</p>

@@ -36,3 +36,21 @@ describe("buildDataSchema", () => {
     expect(schema.safeParse({ ...template.sample, partnerOne: "a".repeat(61) }).success).toBe(false);
   });
 });
+
+describe("draft mode", () => {
+  const draft = buildDataSchema(template, { draft: true });
+
+  it("allows incomplete data while editing", () => {
+    expect(draft.safeParse({ partnerOne: "Ruqiya" }).success).toBe(true);
+    expect(draft.safeParse({}).success).toBe(true);
+  });
+
+  it("still enforces safety rules", () => {
+    expect(draft.safeParse({ mapUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(draft.safeParse({ unknown: "x" }).success).toBe(false);
+  });
+
+  it("publish mode still requires required fields", () => {
+    expect(schema.safeParse({ partnerOne: "Ruqiya" }).success).toBe(false);
+  });
+});
